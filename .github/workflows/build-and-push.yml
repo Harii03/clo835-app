@@ -1,18 +1,42 @@
-name: Build (no push)
+name: Build and Push (GHCR)
 
 on:
   push:
-    branches: [ main ]   # or master if that’s your default
-  pull_request:
-    branches: [ main ]
+    branches: [ master ]   # runs after PRs merge into master
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_OWNER: ${{ github.repository_owner }}
+  APP_IMAGE: ghcr.io/${{ github.repository_owner }}/clo835-app
+  MYSQL_IMAGE: ghcr.io/${{ github.repository_owner }}/clo835-mysql
+
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build MySQL image (local CI build)
-        run: docker build ./mysql -t mysql-ci:latest
-      - name: Build App image (local CI build)
-        run: docker build ./app -t app-ci:latest
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push MySQL
+        run: |
+          TAG=${{ github.sha }}
+          docker build -t $MYSQL_IMAGE:$TAG -t $MYSQL_IMAGE:latest ./mysql
+          docker push $MYSQL_IMAGE:$TAG
+          docker push $MYSQL_IMAGE:latest
+
+      - name: Build & push App
+        run: |
+          TAG=${{ github.sha }}
+          docker build -t $APP_IMAGE:$TAG -t $APP_IMAGE:latest ./app
+          docker push $APP_IMAGE:$TAG
+          docker push $APP_IMAGE:latest
