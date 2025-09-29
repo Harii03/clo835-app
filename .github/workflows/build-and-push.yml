@@ -1,0 +1,58 @@
+name: Build and Push to ECR
+
+on:
+  push:
+    branches: [ master ]   # runs when you merge a PR into master
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_APP_REPO: clo835-app
+  ECR_MYSQL_REPO: clo835-mysql
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Option A: OIDC role (preferred)
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME && !secrets.AWS_ACCESS_KEY_ID }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Option B: Access Keys (fallback)
+      - name: Configure AWS credentials (keys)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push MySQL image
+        run: |
+          APP_ID=${{ github.sha }}
+          REPO_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_MYSQL_REPO }}
+          docker build -t ${REPO_URI}:$APP_ID -t ${REPO_URI}:latest ./mysql
+          docker push ${REPO_URI}:$APP_ID
+          docker push ${REPO_URI}:latest
+
+      - name: Build & push App image
+        run: |
+          APP_ID=${{ github.sha }}
+          REPO_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_APP_REPO }}
+          docker build -t ${REPO_URI}:$APP_ID -t ${REPO_URI}:latest ./app
+          docker push ${REPO_URI}:$APP_ID
+          docker push ${REPO_URI}:latest
