@@ -2,7 +2,7 @@ name: Build and Push to ECR
 
 on:
   push:
-    branches: [ master ]   # runs when you merge a PR into master
+    branches: [ main ]   # runs when you merge a PR into master
   workflow_dispatch:
 
 permissions:
