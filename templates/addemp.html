@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Employee Database</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- Theme color comes from the app (e.g., blue/pink/lime) -->
+    <style>:root { --theme: {{ color|default("#9bd3ff") }}; }</style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Employee Database</h1>
+
+      <form method="post" action="/addemp">
+        <label>Employee ID:</label>
+        <input name="emp_id" required />
+
+        <label>First Name:</label>
+        <input name="first_name" required />
+
+        <label>Last Name:</label>
+        <input name="last_name" required />
+
+        <label>Primary Skills:</label>
+        <input name="pri_skill" required />
+
+        <label>Location:</label>
+        <input name="location" required />
+
+        <div class="btns">
+          <button type="submit">UPDATE DATABASE</button>
+          <a class="ghost" href="/getemp">GET EMPLOYEE INFORMATION</a>
+        </div>
+      </form>
+    </div>
+  </body>
+</html>
