@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Employee Database</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>:root { --theme: {{ color|default("#9bd3ff") }}; }</style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Employee Database</h1>
+
+      {# If your Flask route passes a list of employees, show them #}
+      {% if employees %}
+        <table class="tbl">
+          <thead>
+            <tr><th>ID</th><th>First</th><th>Last</th><th>Primary Skills</th><th>Location</th></tr>
+          </thead>
+          <tbody>
+            {% for e in employees %}
+              <tr>
+                <td>{{ e.emp_id or e.id }}</td>
+                <td>{{ e.first_name or e.fname }}</td>
+                <td>{{ e.last_name or e.lname }}</td>
+                <td>{{ e.pri_skill or e.skill }}</td>
+                <td>{{ e.location }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No data to display yet.</p>
+      {% endif %}
+
+      <div class="btns">
+        <a class="ghost" href="/">BACK</a>
+      </div>
+    </div>
+  </body>
+</html>
