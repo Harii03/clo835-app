@@ -1,46 +1,36 @@
-name: Build and Push to ECR
+name: Build and Push Docker Images
 
 on:
   push:
-    branches: [ master ]   
-  workflow_dispatch:
-
-env:
-  AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
-  APP_REPO: my_app        
-  DB_REPO: my_db            
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Configure AWS credentials (temporary keys)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token:     ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region:            ${{ env.AWS_REGION }}
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Get AWS account id
-        id: acct
-        run: echo "id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region $AWS_REGION \
-          | docker login --username AWS --password-stdin \
-            ${{ steps.acct.outputs.id }}.dkr.ecr.${AWS_REGION}.amazonaws.com
+    - name: Build and Push WebApp Image
+      run: |
+        docker build -t ${{ secrets.ECR_REPOSITORY_WEBAPP }}:latest .
+        docker push ${{ secrets.ECR_REPOSITORY_WEBAPP }}:latest
 
-      - name: Build & Push DB image
-        run: |
-          docker build -t ${{ steps.acct.outputs.id }}.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ env.DB_REPO }}:latest -f Dockerfile_mysql .
-          docker push     ${{ steps.acct.outputs.id }}.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ env.DB_REPO }}:latest
-
-      - name: Build & Push App image
-        run: |
-          docker build -t ${{ steps.acct.outputs.id }}.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ env.APP_REPO }}:latest -f Dockerfile .
-          docker push     ${{ steps.acct.outputs.id }}.dkr.ecr.${AWS_REGION}.amazonaws.com/${{ env.APP_REPO }}:latest
+    - name: Build and Push MySQL Image
+      run: |
+        docker build -t ${{ secrets.ECR_REPOSITORY_MYSQL }}:latest -f Dockerfile_mysql .
+        docker push ${{ secrets.ECR_REPOSITORY_MYSQL }}:latest
