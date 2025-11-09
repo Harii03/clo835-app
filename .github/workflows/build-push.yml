@@ -3,13 +3,11 @@ name: Build and Push Docker Images
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
 
 env:
-  AWS_REGION: us-east-1
-  ECR_REPOSITORY_WEBAPP: 891377234300.dkr.ecr.us-east-1.amazonaws.com/assignment1-webapp
-  ECR_REPOSITORY_MYSQL: 891377234300.dkr.ecr.us-east-1.amazonaws.com/assignment1-mysql
+  ECR_REGISTRY: 891377234300.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REPOSITORY_WEBAPP: assignment1-webapp
+  ECR_REPOSITORY_MYSQL: assignment1-mysql
 
 jobs:
   build-and-push:
@@ -19,29 +17,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-
     - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
-
-    - name: Build WebApp Image
       run: |
-        docker build -t ${{ env.ECR_REPOSITORY_WEBAPP }}:latest .
+        echo "${{ secrets.ECR_PASSWORD }}" | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
 
-    - name: Build MySQL Image
+    - name: Build and Push WebApp Image
       run: |
-        docker build -t ${{ env.ECR_REPOSITORY_MYSQL }}:latest -f Dockerfile_mysql .
+        docker build -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_WEBAPP }}:latest .
+        docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_WEBAPP }}:latest
 
-    - name: Push WebApp Image to ECR
+    - name: Build and Push MySQL Image
       run: |
-        docker push ${{ env.ECR_REPOSITORY_WEBAPP }}:latest
-
-    - name: Push MySQL Image to ECR
-      run: |
-        docker push ${{ env.ECR_REPOSITORY_MYSQL }}:latest
+        docker build -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_MYSQL }}:latest -f Dockerfile_mysql .
+        docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY_MYSQL }}:latest
